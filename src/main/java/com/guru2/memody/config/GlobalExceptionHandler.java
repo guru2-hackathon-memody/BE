@@ -1,10 +1,7 @@
 package com.guru2.memody.config;
 
-import com.guru2.memody.Exception.RegionWrongException;
-import com.guru2.memody.Exception.UserAlreadyExistsException;
-import com.guru2.memody.Exception.UserNotFoundException;
+import com.guru2.memody.Exception.*;
 import com.guru2.memody.dto.ErrorResponse;
-import com.guru2.memody.Exception.UserNameAlreadyExistsException;
 import com.guru2.memody.entity.Region;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -58,6 +55,18 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponse(
                         "USER_NOT_FOUND",
+                        e.getMessage()
+                ));
+    }
+
+    @ExceptionHandler(RecordNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleRecordNotFoundException(
+            RecordNotFoundException e
+    ){
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(
+                        "RECORD_NOT_FOUND",
                         e.getMessage()
                 ));
     }
