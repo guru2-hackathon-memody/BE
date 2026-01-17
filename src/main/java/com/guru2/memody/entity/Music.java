@@ -1,9 +1,17 @@
 package com.guru2.memody.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "music")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class Music {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -15,9 +23,12 @@ public class Music {
     @Column(nullable = false)
     private String artist;
 
-    @Column(nullable = false)
+    @Column(nullable = true, columnDefinition = "TEXT")
     private String spotifyUrl;
 
-    @Column(nullable = true)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String appleMusicUrl;
+
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String thumbnailUrl;
 }
