@@ -82,4 +82,16 @@ public class GlobalExceptionHandler {
                         e.getMessage()
                 ));
     }
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotFoundException(
+            NotFoundException e
+    ){
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(
+                        "REQUEST_NOT_FOUND",
+                        e.getMessage()
+                ));
+    }
 }

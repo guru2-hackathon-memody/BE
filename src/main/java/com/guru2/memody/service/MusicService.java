@@ -3,27 +3,31 @@ package com.guru2.memody.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.guru2.memody.Exception.NotFoundException;
 import com.guru2.memody.Exception.UserNotFoundException;
 import com.guru2.memody.dto.*;
 import com.guru2.memody.entity.*;
 import com.guru2.memody.entity.Record;
 import com.guru2.memody.extractData.VWorldClient;
-import com.guru2.memody.repository.MusicLikeRepository;
-import com.guru2.memody.repository.MusicRepository;
-import com.guru2.memody.repository.RecordRepository;
-import com.guru2.memody.repository.UserRepository;
+import com.guru2.memody.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +37,7 @@ public class MusicService {
     private final RecordRepository recordRepository;
     private final VWorldClient vWorldClient;
     private final MusicLikeRepository musicLikeRepository;
+    private final RecordImageRepository recordImageRepository;
 
     @Value("${lastfm.api.key}")
     private String apiKey;
@@ -122,6 +127,17 @@ public class MusicService {
 
         RegionFullName regionFullName = vWorldClient.setRecordRegion(musicRecordDto.getLongitude(), musicRecordDto.getLatitude());
         Record record = new Record();
+
+        for (MultipartFile multipartFile : musicRecordDto.getImages()){
+            RecordImage recordImage = new RecordImage();
+            if(multipartFile.isEmpty()){
+                continue;
+            }
+            recordImage.setRecord(record);
+            recordImage.setImageUrl(multipartFile.getOriginalFilename());
+            saveImage(multipartFile);
+            recordImageRepository.save(recordImage);
+        }
         record.setRecordMusic(music);
         record.setText(musicRecordDto.getContent());
         record.setLatitude(musicRecordDto.getLatitude());
@@ -198,6 +214,35 @@ public class MusicService {
             musicListResponseDtos.add(musicListResponseDto);
         }
         return musicListResponseDtos;
+    }
+
+    private static final String UPLOAD_DIR = "uploads/images/";
+
+    public String saveImage(MultipartFile file) {
+        if (file.isEmpty()) {
+            throw new NotFoundException("IMAGE_FILE_EMPTY");
+        }
+
+        try {
+            Files.createDirectories(Paths.get(UPLOAD_DIR));
+
+            String ext = getExtension(file.getOriginalFilename());
+            String filename = UUID.randomUUID() + ext;
+
+            Path path = Paths.get(UPLOAD_DIR + filename);
+            Files.write(path, file.getBytes());
+
+            return "/images/" + filename;
+        } catch (IOException e) {
+            throw new RuntimeException("이미지 저장 실패", e);
+        }
+    }
+
+    private String getExtension(String filename) {
+        if (filename == null || !filename.contains(".")) {
+            return "";
+        }
+        return filename.substring(filename.lastIndexOf("."));
     }
 
 

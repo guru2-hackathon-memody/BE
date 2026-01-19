@@ -4,11 +4,10 @@ import com.guru2.memody.Exception.NotAllowedException;
 import com.guru2.memody.Exception.RecordNotFoundException;
 import com.guru2.memody.Exception.UserNotFoundException;
 import com.guru2.memody.dto.*;
-import com.guru2.memody.entity.Like;
-import com.guru2.memody.entity.LikeType;
-import com.guru2.memody.entity.User;
+import com.guru2.memody.entity.*;
 import com.guru2.memody.entity.Record;
 import com.guru2.memody.repository.LikeRepository;
+import com.guru2.memody.repository.RecordImageRepository;
 import com.guru2.memody.repository.RecordRepository;
 import com.guru2.memody.repository.UserRepository;
 import jakarta.transaction.Transactional;
@@ -25,6 +24,7 @@ public class RecordService {
     private final RecordRepository recordRepository;
     private final UserRepository userRepository;
     private final LikeRepository likeRepository;
+    private final RecordImageRepository recordImageRepository;
 
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
@@ -66,12 +66,29 @@ public class RecordService {
         return recordPinResponseDtos;
     }
 
-    public RecordDetailDto getRecordDetail(Long recordId) {
+    public RecordDetailDto getRecordDetail(Long userId, Long recordId) {
         Record record = recordRepository.findById(recordId).orElseThrow(
                 RecordNotFoundException::new
         );
-
+        User user = userRepository.findUserByUserId(userId).orElseThrow(
+                UserNotFoundException::new
+        );
         RecordDetailDto recordDetailDto = new RecordDetailDto();
+
+        List<RecordImage> recordImages = recordImageRepository.findAllByRecord(record);
+        List<String> strings = new ArrayList<>();
+        for (RecordImage recordImage : recordImages) {
+            String imageUrl = recordImage.getImageUrl();
+            strings.add(imageUrl);
+        }
+        recordDetailDto.setImageUrls(strings);
+
+        if(user == record.getUser()) {
+            recordDetailDto.setLiked(null);
+            recordDetailDto.setLikeCount(null);
+        }
+        else recordDetailDto.setLiked(likeRepository.findByUserAndRecord(user, record).isPresent());
+
         recordDetailDto.setTitle(record.getRecordMusic().getTitle());
         recordDetailDto.setArtist(record.getRecordMusic().getArtist());
         recordDetailDto.setContent(record.getText());
@@ -79,6 +96,7 @@ public class RecordService {
         recordDetailDto.setSpotifyUrl(record.getRecordMusic().getSpotifyUrl());
         recordDetailDto.setITunesUrl(record.getRecordMusic().getAppleMusicUrl());
         recordDetailDto.setRecordDate(record.getRecordTime().format(formatter));
+        recordDetailDto.setLikeCount(record.getLikeCount());
         return recordDetailDto;
     }
 

@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -15,4 +16,7 @@ public class RecordDetailDto {
     private String thumbnail;
     private String spotifyUrl;
     private String iTunesUrl;
+    private List<String> imageUrls;
+    private Boolean liked;
+    private Integer likeCount;
 }
