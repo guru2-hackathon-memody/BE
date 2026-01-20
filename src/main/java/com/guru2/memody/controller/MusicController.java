@@ -2,16 +2,15 @@ package com.guru2.memody.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.guru2.memody.config.CustomUserDetails;
-import com.guru2.memody.dto.LikeResponseDto;
-import com.guru2.memody.dto.MusicRecordDto;
-import com.guru2.memody.dto.RecordPinResponseDto;
-import com.guru2.memody.dto.MusicListResponseDto;
+import com.guru2.memody.dto.*;
 import com.guru2.memody.service.MusicService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -29,11 +28,12 @@ public class MusicController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/record")
+    @PostMapping(value = "/record", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<RecordPinResponseDto> recordTrack(@AuthenticationPrincipal CustomUserDetails user,
-                                                            @RequestBody MusicRecordDto musicRecordDto) throws JsonProcessingException {
+                                                            @RequestPart("request") MusicRecordDto request,
+                                                            @RequestPart(value = "images", required = false) List<MultipartFile> images) throws JsonProcessingException {
         Long userId = user.getUserId();
-        RecordPinResponseDto response = musicService.recordTrack(userId, musicRecordDto);
+        RecordPinResponseDto response = musicService.recordTrack(userId, request, images);
         return ResponseEntity.ok(response);
     }
 
@@ -41,6 +41,19 @@ public class MusicController {
     public ResponseEntity<LikeResponseDto> likeTrack(@AuthenticationPrincipal CustomUserDetails user, @PathVariable Long musicId){
         Long userId = user.getUserId();
         LikeResponseDto response = musicService.likeTrack(userId, musicId);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/artist")
+    public ResponseEntity<List<ArtistResponseDto>> getArtist(@AuthenticationPrincipal CustomUserDetails user, @RequestParam String search) throws JsonProcessingException {
+        List<ArtistResponseDto> response = musicService.getArtistList(search);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{musicId}")
+    public ResponseEntity<MusicDetailDto> getMusic(@AuthenticationPrincipal CustomUserDetails user, @PathVariable Long musicId){
+        Long userId = user.getUserId();
+        MusicDetailDto response = musicService.getMusicDetail(userId, musicId);
         return ResponseEntity.ok(response);
     }
 }

@@ -17,4 +17,7 @@ public class Recommend {
     private User user;
 
     private LocalDateTime createTime;
+
+    private Enum MomentType;
+    private Enum MoodType;
 }

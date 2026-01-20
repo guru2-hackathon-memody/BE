@@ -94,7 +94,7 @@ public class UserService {
         );
         artistPreferenceRepository.deleteAllByUser(user);
         for(String s : artist){
-            atst.add(artistRepository.findArtistByArtistName(s));
+            atst.add(artistRepository.findOnboardingArtistByExactName(s).orElse(null));
         }
         for(Artist a : atst){
             ArtistPreference ap = new ArtistPreference();

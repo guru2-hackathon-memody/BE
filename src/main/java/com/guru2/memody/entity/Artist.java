@@ -21,4 +21,7 @@ public class Artist {
     private String artistName;
 
     private String artistImageUrl;
+
+    @Column(nullable = false, unique = true)
+    private Long itunesArtistId = 0L;
 }
