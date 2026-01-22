@@ -65,14 +65,14 @@ public class MusicController {
     public ResponseEntity<List<MusicListResponseDto>> getRecommend(@AuthenticationPrincipal CustomUserDetails user,
                                                                    @RequestBody RecommendRequestDto recommendRequestDto) throws JsonProcessingException {
         Long userId = user.getUserId();
-        List<MusicListResponseDto> response = recommendService.getRecommendByOnboarding(userId, recommendRequestDto);
+        List<MusicListResponseDto> response = recommendService.getRecommendTrackByOnboarding(userId, recommendRequestDto);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/today")
     public ResponseEntity<List<MusicListResponseDto>> getTodayRecommend(@AuthenticationPrincipal CustomUserDetails user) throws JsonProcessingException {
         Long userId = user.getUserId();
-        List<MusicListResponseDto> response = recommendService.getRecommendByUserInfo(userId);
+        List<MusicListResponseDto> response = recommendService.getRecommendTrackByUserInfo(userId);
         return ResponseEntity.ok(response);
     }
 
