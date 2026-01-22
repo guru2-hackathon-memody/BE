@@ -1,5 +1,8 @@
 package com.guru2.memody.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.guru2.memody.Exception.UserNotFoundException;
 import com.guru2.memody.dto.MusicListResponseDto;
 import com.guru2.memody.entity.MusicLike;
@@ -9,7 +12,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.util.UriUtils;
 
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,14 +25,14 @@ public class ITunesService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    private static final String APPLE_BASE_URL = "https://itunes.apple.com/search";
-    private static final String APPLE_IMAGE_URL = "https://itunes.apple.com/lookup";
+    private static final String APPLE_SEARCH_URL = "https://itunes.apple.com/search";
+    private static final String APPLE_LOOKUP_URL = "https://itunes.apple.com/lookup";
 
     private final UserRepository userRepository;
     private final MusicLikeRepository musicLikeRepository;
 
     public String searchTrackWithItunes(String search) {
-        String uri = UriComponentsBuilder.fromUriString(APPLE_BASE_URL)
+        String uri = UriComponentsBuilder.fromUriString(APPLE_SEARCH_URL)
                 .queryParam("term", search)
                 .queryParam("country", "KR")
                 .queryParam("media", "music")
@@ -38,7 +44,7 @@ public class ITunesService {
     }
 
     public String searchArtistWithItunes(String search) {
-        String uri = UriComponentsBuilder.fromUriString(APPLE_BASE_URL)
+        String uri = UriComponentsBuilder.fromUriString(APPLE_SEARCH_URL)
                 .queryParam("term", search)
                 .queryParam("country", "KR")
                 .queryParam("media", "music")
@@ -49,8 +55,8 @@ public class ITunesService {
         return restTemplate.getForObject(uri, String.class);
     }
 
-    public String searchArtistImageWithItunes(Long id) {
-        String uri = UriComponentsBuilder.fromUriString(APPLE_IMAGE_URL)
+    public String lookupArtistImageWithItunes(Long id) {
+        String uri = UriComponentsBuilder.fromUriString(APPLE_LOOKUP_URL)
                 .queryParam("id", id)
                 .queryParam("country", "KR")
                 .queryParam("entity", "song")
@@ -62,18 +68,39 @@ public class ITunesService {
     }
 
 
-    public List<MusicListResponseDto> getLikedMusicList(Long userId) {
-        User user = userRepository.findUserByUserId(userId).orElseThrow(
-                UserNotFoundException::new
-        );
-        List<MusicLike> musicLikes = musicLikeRepository.findAllByUser(user);
-        List<MusicListResponseDto> musicListResponseDtos = new ArrayList<>();
-        for (MusicLike musicLike : musicLikes) {
-            MusicListResponseDto musicListResponseDto = new MusicListResponseDto(musicLike.getMusic().getMusicId(), musicLike.getMusic().getTitle(),
-                    musicLike.getMusic().getArtist(), musicLike.getMusic().getThumbnailUrl());
-            musicListResponseDtos.add(musicListResponseDto);
-        }
-        return musicListResponseDtos;
+    public String getSpotifyLinkFromItunes(String itunesUrl) throws JsonProcessingException {
+        String encodedUrl = UriUtils.encode(itunesUrl, StandardCharsets.UTF_8);
+
+        String uri = "https://api.song.link/v1-alpha.1/links?url=" + encodedUrl;
+
+        String response = restTemplate.getForObject(uri, String.class);
+
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree(response);
+
+        return root
+                .path("linksByPlatform")
+                .path("spotify")
+                .path("url")
+                .asText();
     }
+
+    public String searchTrackWithClearInfo(String title, String artist){
+        String term = title + " " + artist;
+
+        URI uri = UriComponentsBuilder
+                .fromUriString(APPLE_SEARCH_URL)
+                .queryParam("term", term)
+                .queryParam("media", "music")
+                .queryParam("entity", "song")
+                .queryParam("limit", 1)
+                .queryParam("country", "KR")
+                .encode(StandardCharsets.UTF_8)
+                .build()
+                .toUri();
+
+        return restTemplate.getForObject(uri, String.class);
+    }
+
 
 }

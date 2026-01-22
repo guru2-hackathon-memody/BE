@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.guru2.memody.config.CustomUserDetails;
 import com.guru2.memody.dto.*;
 import com.guru2.memody.service.MusicService;
+import com.guru2.memody.service.RecommendService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +22,7 @@ import java.util.List;
 public class MusicController {
 
     private final MusicService musicService;
+    private final RecommendService recommendService;
 
     @GetMapping("/search")
     public ResponseEntity<List<MusicListResponseDto>> searchTrack(@RequestParam String search) throws JsonProcessingException {
@@ -54,6 +56,14 @@ public class MusicController {
     public ResponseEntity<MusicDetailDto> getMusic(@AuthenticationPrincipal CustomUserDetails user, @PathVariable Long musicId){
         Long userId = user.getUserId();
         MusicDetailDto response = musicService.getMusicDetail(userId, musicId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/recommend")
+    public ResponseEntity<List<MusicListResponseDto>> getRecommend(@AuthenticationPrincipal CustomUserDetails user,
+                                                                   @RequestBody RecommendRequestDto recommendRequestDto) throws JsonProcessingException {
+        Long userId = user.getUserId();
+        List<MusicListResponseDto> response = recommendService.getRecommendByOnboarding(userId, recommendRequestDto);
         return ResponseEntity.ok(response);
     }
 }

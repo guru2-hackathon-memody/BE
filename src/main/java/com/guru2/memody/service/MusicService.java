@@ -64,9 +64,10 @@ public class MusicService {
         for (JsonNode trackNode : results) {
 
             Music music = null;
-            music = musicRepository.findMusicByAppleMusicUrl(trackNode.path("trackViewUrl").asText()).orElse(
+            music = musicRepository.findMusicByItunesId(trackNode.path("trackId").asLong()).orElse(
                     new Music()
             );
+            music.setItunesId(trackNode.path("trackId").asLong());
             music.setTitle(trackNode.path("trackName").asText());
             music.setArtist(trackNode.path("artistName").asText());
             music.setAppleMusicUrl(trackNode.path("trackViewUrl").asText());
@@ -92,7 +93,7 @@ public class MusicService {
                 () -> new RuntimeException("User not found")
         );
         Music music = musicRepository.findMusicByMusicId(musicRecordDto.getMusicId());
-        String spotifyUrl = getSpotifyLinkFromItunes(music.getAppleMusicUrl());
+        String spotifyUrl = itunesService.getSpotifyLinkFromItunes(music.getAppleMusicUrl());
         music.setSpotifyUrl(spotifyUrl);
         musicRepository.save(music);
 
@@ -130,22 +131,6 @@ public class MusicService {
 
     }
 
-    public String getSpotifyLinkFromItunes(String itunesUrl) throws JsonProcessingException {
-        String encodedUrl = UriUtils.encode(itunesUrl, StandardCharsets.UTF_8);
-
-        String uri = "https://api.song.link/v1-alpha.1/links?url=" + encodedUrl;
-
-        String response = restTemplate.getForObject(uri, String.class);
-
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode root = mapper.readTree(response);
-
-        return root
-                .path("linksByPlatform")
-                .path("spotify")
-                .path("url")
-                .asText();
-    }
 
     public LikeResponseDto likeTrack(Long userId, Long musicId) {
         User user = userRepository.findUserByUserId(userId).orElseThrow(
@@ -219,7 +204,7 @@ public class MusicService {
             Long itunesArtistId = trackNode.path("artistId").asLong();
             String artistName = trackNode.path("artistName").asText();
 
-            String imageResponse = itunesService.searchArtistImageWithItunes(itunesArtistId);
+            String imageResponse = itunesService.lookupArtistImageWithItunes(itunesArtistId);
             ObjectMapper imageMapper = new ObjectMapper();
             JsonNode imageRoot = imageMapper.readTree(imageResponse);
 
@@ -272,6 +257,21 @@ public class MusicService {
         musicDetailDto.setLiked(musicLikeRepository.findByUserAndMusic(user, music).isPresent());
 
         return musicDetailDto;
+    }
+
+
+    public List<MusicListResponseDto> getLikedMusicList(Long userId) {
+        User user = userRepository.findUserByUserId(userId).orElseThrow(
+                UserNotFoundException::new
+        );
+        List<MusicLike> musicLikes = musicLikeRepository.findAllByUser(user);
+        List<MusicListResponseDto> musicListResponseDtos = new ArrayList<>();
+        for (MusicLike musicLike : musicLikes) {
+            MusicListResponseDto musicListResponseDto = new MusicListResponseDto(musicLike.getMusic().getMusicId(), musicLike.getMusic().getTitle(),
+                    musicLike.getMusic().getArtist(), musicLike.getMusic().getThumbnailUrl());
+            musicListResponseDtos.add(musicListResponseDto);
+        }
+        return musicListResponseDtos;
     }
 
 

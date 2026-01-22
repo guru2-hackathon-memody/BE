@@ -27,4 +27,12 @@ public class Recommend {
 
     private Enum MomentType;
     private Enum MoodType;
+
+    @ManyToMany
+    @JoinTable(
+            name = "recommend_music",
+            joinColumns = @JoinColumn(name = "recommend_id"),
+            inverseJoinColumns = @JoinColumn(name = "music_id")
+    )
+    private List<Music> recommendMusic;
 }

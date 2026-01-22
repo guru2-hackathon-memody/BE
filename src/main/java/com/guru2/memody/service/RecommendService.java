@@ -3,14 +3,19 @@ package com.guru2.memody.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.genai.Client;
+import com.google.genai.types.GenerateContentResponse;
 import com.guru2.memody.Exception.UserNotFoundException;
 import com.guru2.memody.dto.MusicListResponseDto;
 import com.guru2.memody.dto.RecommendRequestDto;
 import com.guru2.memody.entity.*;
 import com.guru2.memody.entity.Record;
 import com.guru2.memody.repository.*;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Limit;
 import org.springframework.http.HttpEntity;
@@ -25,6 +30,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RecommendService {
@@ -32,14 +38,34 @@ public class RecommendService {
     private final RecommendRepository recommendRepository;
     private final RestTemplate restTemplate = new RestTemplate();
 
+    @Value("${GEMINI_API_KEY}") // properties에 넣은 값
+    private String geminiApiKey;
     private final String GEMINI_API_KEY = System.getenv("GEMINI_API_KEY");
-    private final String GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+    private final String GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/";
     private final GenrePreferenceRepository genrePreferenceRepository;
     private final ArtistPreferenceRepository artistPreferenceRepository;
     private final MusicLikeRepository musicLikeRepository;
     private final RecordRepository recordRepository;
+    private final ITunesService itunesService;
+    private final MusicRepository musicRepository;
+    private final ObjectMapper objectMapper;
 
-    private String userInfoToPrompt(User user) {
+    @Getter @Setter @NoArgsConstructor
+    private static class GeminiResponseDto {
+        private int total;
+        private List<GeminiRecommendationDto> recommendations;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    private static class GeminiRecommendationDto {
+        private String title;
+        private String artist;
+        private String country;
+    }
+
+    private String createRecommendationPrompt(User user, RecommendRequestDto recommend) {
         List<String> genreNames = genrePreferenceRepository.findAllByUser(user)
                 .stream()
                 .map(g -> g.getGenre().getGenreName())
@@ -53,7 +79,7 @@ public class RecommendService {
         List<String> musicNames = musicLikeRepository
                 .findAllByUserOrderByLikeDateDesc(user, Limit.of(3))
                 .stream()
-                .map(like -> like.getMusic().getTitle())
+                .map(like -> like.getMusic().getTitle() + " - (trackId) " + like.getMusic().getItunesId())
                 .toList();
 
         List<String> recordContents = recordRepository
@@ -61,145 +87,159 @@ public class RecommendService {
                 .stream()
                 .map(record ->
                         "노래 제목: " + record.getRecordMusic().getTitle()
+                                + ", trackId: " + record.getRecordMusic().getItunesId()
                                 + ", 기록한 이유: " + record.getText()
                 )
                 .toList();
 
         String prompt = """
-                아래는 음악 기록 및 추천 서비스 유저의 음악 선호 정보입니다.
+                아래는 음악 기록 및 추천 서비스 유저의 음악 선호 정보와, 현재 유저가 듣고 싶어하는 음악의 정보입니다.
                 좋아요 누른 음악과 기록한 음악은 각각 0개 이상 3개 이하의 가장 최근 데이터입니다. \n
                 기록한 음악은 기록한 당시 사용자가 입력한 음악에 대한 감상이 포함되어 있습니다.
                 
                 추천 기준: 
-                1. 좋아요 누른 음악과 기록한 음악이 하나라도 있다면 이를 최우선으로 기반하여 추천합니다. 
-                2. 둘 다 없다면 좋아하는 음악 장르, 가수를 기반으로 노래를 추천합니다. \n\n
+                1. 유저의 현재 정보를 기반으로 어울리는 곡을 최우선으로 찾으세요.
+                2. 유저가 '좋아요' 하거나 '기록한' 음악과 유사한 분위기를 기반으로 확장하세요.
+                3. 해당 데이터가 부족하면 선호 장르/가수 기반으로 확장하세요.
+                4. 노래의 분위기(Vibe)가 유저의 취향과 맞아야 합니다.
+                5. **추천 결과의 80퍼센트는 반드시 한국 음악(K-Pop, 인디 등)이어야 합니다.**
+                6. 추천 곡은 최소 5개, 최대 10개입니다.
                 
+                [기존 유저 정보]
                 좋아하는 음악 장르: %s
                 좋아하는 분위기의 가수: %s
                 좋아요 누른 음악: %s
                 기록한 음악(감상 포함): %s
                 
+                [유저의 현재 정보]
+                음악을 듣고 싶은 상황: %s
+                기분: %s
+                듣고 싶은 아티스트: %s
+                듣고 싶은 음악 장르: %s
+                
                 응답 규칙(매우 중요):
-                - iTunes Search API에서 사용되는 trackId(Long 숫자)만 사용하세요.
-                - 추천 곡은 최소 5개, 최대 20개입니다.
                 - 출력 형식은 다음과 같습니다.
                 
-                [곡 개수를 표현하는 두 자리 숫자],[trackId],[trackId],...,[trackId]
+                {
+                  "total": 숫자,
+                  "recommendations": [
+                    {
+                      "title": "곡 제목",
+                      "artist": "가수명",
+                      "country": "KR or OTHER"
+                    }
+                  ]
+                }
                 
-                - 곡 개수는 두 자리 숫자로 표시합니다.(예, 5 -> 05, 18 -> 18)
-                - 쉼표(,) 외의 다른 구분자는 사용하지 마세요. 공백문자( )도 사용하지 마세요. 
-                - trackId 리스트 제외 다른 텍스트, 설명, 줄바꿈을 추가하지 마세요.
-                - 응답 예시 : 
-                04,1440833092,1440833091,1440833094,14408330926
+                규칙:
+                - total은 recommendations 배열 길이와 동일해야 합니다.
+                - 추천 곡은 최소 5개, 최대 10개입니다.
+                - 전체 추천 곡 중 80퍼센트 이상은 country가 "KR"이어야 합니다.
+                - title과 artist는 iTunes Search API에서 검색 가능한 정확한 명칭을 사용하세요.
+                - 다른 텍스트는 절대 포함하지 마세요.
+            
                 """.formatted(
                 genreNames.isEmpty() ? "없음" : String.join(", ", genreNames),
                 artistNames.isEmpty() ? "없음" : String.join(", ", artistNames),
                 musicNames.isEmpty() ? "없음" : String.join(", ", musicNames),
-                recordContents.isEmpty() ? "없음" : String.join(" | ", recordContents)
-        );;
+                recordContents.isEmpty() ? "없음" : String.join(" | ", recordContents),
+                recommend.getMoment(),
+                recommend.getMood(),
+                recommend.getArtistNames(),
+                recommend.getGenreNames()
+        );
+
+        log.info(prompt);
 
         return  prompt;
     }
 
     private String callGemini(String prompt){
-        String uri = UriComponentsBuilder.fromUriString(GEMINI_BASE_URL)
-                .queryParam("key", GEMINI_API_KEY)
-                .build().toUriString();
+        Client client = Client.builder().apiKey(geminiApiKey).build();
+        GenerateContentResponse response =
+                client.models.generateContent(
+                        "gemini-3-flash-preview",
+                        prompt,
+                        null);
+        log.info(response.toString());
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-
-        String body = """
-                {
-                    "contents" : [
-                    {
-                        "parts" : [
-                        { "text" : "%s" }
-                        ]
-                    }
-                    ]
-                }
-                """.formatted(prompt);
-
-        HttpEntity<String> request = new HttpEntity<String>(body, headers);
-
-        ResponseEntity<String> response = restTemplate.postForEntity(uri, request, String.class);
-
-        return response.getBody();
+        return response.text();
     }
 
-    private String extractGeminiText(String response) throws JsonProcessingException {
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode root = mapper.readTree(response);
-
-        return root.path("candidates")
-                .get(0)
-                .path("content")
-                .path("parts")
-                .get(0)
-                .path("text")
-                .asText()
-                .trim();
-    }
-
-    private List<Long> parseTrackIds(String geminiText) {
-
-        // 혹시 모를 공백 제거
-        geminiText = geminiText.replaceAll("\\s", "");
-
-        String[] tokens = geminiText.split(",");
-
-        if (tokens.length < 2) {
-            throw new IllegalArgumentException("Gemini 응답 형식 오류");
-        }
-
-        // 첫 번째 값 = 곡 개수
-        int declaredCount;
+    private List<GeminiRecommendationDto> parseGeminiResponse(String geminiText) {
         try {
-            declaredCount = Integer.parseInt(tokens[0]);
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("곡 개수 파싱 실패");
-        }
+            String cleanedText = geminiText.replaceAll("```json", "").replaceAll("```", "").trim();
 
-        List<Long> trackIds = new ArrayList<>();
+            GeminiResponseDto responseDto = objectMapper.readValue(cleanedText, GeminiResponseDto.class);
 
-        for (int i = 1; i < tokens.length; i++) {
-            try {
-                trackIds.add(Long.parseLong(tokens[i]));
-            } catch (NumberFormatException e) {
-                // 숫자 아닌 값은 무시
+            if (responseDto.getRecommendations() == null || responseDto.getRecommendations().isEmpty()) {
+                throw new IllegalStateException("추천 결과가 비어있습니다.");
             }
-        }
 
-        // 곡 개수 검증
-        if (trackIds.size() < 5 || trackIds.size() > 20) {
-            throw new IllegalStateException("추천 곡 개수 범위 오류");
-        }
+            return responseDto.getRecommendations();
 
-        return trackIds;
+        } catch (JsonProcessingException e) {
+            log.error("Gemini 응답 파싱 실패: {}", geminiText, e);
+            throw new IllegalArgumentException("AI 응답 형식이 올바르지 않습니다.");
+        }
     }
 
 
 
     public List<MusicListResponseDto> getRecommendByOnboarding(Long userId, RecommendRequestDto recommendRequestDto) throws JsonProcessingException {
         User user = userRepository.findUserByUserId(userId).orElseThrow(UserNotFoundException::new);
-        if(recommendRepository.findByUser(user).isPresent()) {
-            recommendRepository.delete(recommendRepository.findByUser(user).get());
-        }
+        recommendRepository.findByUser(user)
+                .ifPresent(recommendRepository::delete);
         Recommend recommend = new Recommend();
         recommend.setUser(user);
         recommend.setMomentType(Moment.valueOf(recommendRequestDto.getMoment()));
         recommend.setMoodType(Mood.valueOf(recommendRequestDto.getMood()));
         recommend.setCreateTime(LocalDateTime.now());
 
-        String prompt = userInfoToPrompt(user);
+        String prompt = createRecommendationPrompt(user, recommendRequestDto);
         String response = callGemini(prompt);
-        String text = extractGeminiText(response);
-        List<Long> trackIds = parseTrackIds(text);
+        List<GeminiRecommendationDto> recommendedItems = parseGeminiResponse(response);
 
-        for(Long trackId : trackIds) {
+        List<MusicListResponseDto> trackList = new ArrayList<>();
+        List<Music> musicList = new ArrayList<>();
 
+        for(GeminiRecommendationDto item : recommendedItems) {
+            try{
+                String musicResponse = itunesService.searchTrackWithClearInfo(item.getTitle(), item.getArtist());
+                ObjectMapper mapper = new ObjectMapper();
+                JsonNode root = mapper.readTree(musicResponse);
+
+                JsonNode results = root.path("results");
+                for (JsonNode trackNode : results) {
+                    Music music = null;
+                    music = musicRepository.findMusicByItunesId(trackNode.path("trackId").asLong()).orElse(
+                            new Music()
+                    );
+
+                    music.setItunesId(trackNode.path("trackId").asLong());
+                    music.setTitle(trackNode.path("trackName").asText());
+                    music.setArtist(trackNode.path("artistName").asText());
+                    music.setAppleMusicUrl(trackNode.path("trackViewUrl").asText());
+                    music.setThumbnailUrl(trackNode.path("artworkUrl100").asText());
+                    musicList.add(music);
+                    musicRepository.save(music);
+
+                    trackList.add(new MusicListResponseDto(
+                            music.getMusicId(),
+                            trackNode.path("trackName").asText(),
+                            trackNode.path("artistName").asText(),
+                            trackNode.path("artworkUrl100").asText()
+                    ));
+                }
+            } catch (Exception e) {
+                log.error("iTunes 검색 중 오류 발생: {} - {}", item.getTitle(), item.getArtist(), e);
+            }
+
+            recommend.setRecommendMusic(musicList);
+            recommendRepository.save(recommend);
         }
+
+        return trackList;
 
     }
 }

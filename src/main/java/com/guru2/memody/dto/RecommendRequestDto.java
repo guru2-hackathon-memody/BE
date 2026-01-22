@@ -9,6 +9,6 @@ import java.util.List;
 public class RecommendRequestDto {
     private String moment;
     private String mood;
-    private List<Long> artistIds;
+    private List<String> artistNames;
     private List<String> genreNames;
 }

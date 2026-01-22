@@ -26,8 +26,14 @@ public class UserController {
 
     @PostMapping("/signup")
     ResponseEntity<SignUpResponseDto> signup(@RequestBody SignUpDto signUpDto){
-        SignUpResponseDto signUpResponseDto = userService.signup(signUpDto);
-        return ResponseEntity.ok(signUpResponseDto);
+        SignUpResponseDto response = userService.signup(signUpDto);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/check")
+    ResponseEntity<Boolean> check(@RequestParam String email){
+        Boolean response = userService.checkEmail(email);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/login")

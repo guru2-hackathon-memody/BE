@@ -60,6 +60,11 @@ public class UserService {
         return signUpResponseDto;
     }
 
+    public Boolean checkEmail(String email) {
+        Boolean check = userRepository.findUserByEmail(email).isEmpty();
+        return check;
+    }
+
     public String login(LoginRequestDto loginRequestDto) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginRequestDto.getEmail(), loginRequestDto.getPassword())
