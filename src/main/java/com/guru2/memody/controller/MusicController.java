@@ -82,4 +82,18 @@ public class MusicController {
         List<PinnedListDto> response = recordService.getLatentPin(userId);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/album/{albumId}")
+    public ResponseEntity<AlbumDetailDto> getTodayAlbum(@AuthenticationPrincipal CustomUserDetails user, @PathVariable Long albumId) {
+        Long userId = user.getUserId();
+        AlbumDetailDto response = musicService.getAlbumDetail(userId, albumId);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/today/artist")
+    public ResponseEntity<ArtistRecommendDto> getTodayArtist(@AuthenticationPrincipal CustomUserDetails user) {
+        Long userId = user.getUserId();
+        ArtistRecommendDto response = musicService.getArtistRecommendDetail(userId);
+        return ResponseEntity.ok(response);
+    }
 }
