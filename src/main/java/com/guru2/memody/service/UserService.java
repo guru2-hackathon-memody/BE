@@ -60,6 +60,11 @@ public class UserService {
         return signUpResponseDto;
     }
 
+    public Boolean checkEmail(String email) {
+        Boolean check = userRepository.findUserByEmail(email).isEmpty();
+        return check;
+    }
+
     public String login(LoginRequestDto loginRequestDto) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginRequestDto.getEmail(), loginRequestDto.getPassword())
@@ -94,7 +99,7 @@ public class UserService {
         );
         artistPreferenceRepository.deleteAllByUser(user);
         for(String s : artist){
-            atst.add(artistRepository.findArtistByArtistName(s));
+            atst.add(artistRepository.findOnboardingArtistByExactName(s).orElse(null));
         }
         for(Artist a : atst){
             ArtistPreference ap = new ArtistPreference();

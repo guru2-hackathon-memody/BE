@@ -40,8 +40,9 @@ public class MapController {
     }
 
     @GetMapping("/{recordId}")
-    public ResponseEntity<RecordDetailDto> getRecordDetail(@PathVariable Long recordId) {
-        RecordDetailDto recordDetailDto = recordService.getRecordDetail(recordId);
+    public ResponseEntity<RecordDetailDto> getRecordDetail(@AuthenticationPrincipal CustomUserDetails user, @PathVariable Long recordId) {
+        Long userId = user.getUserId();
+        RecordDetailDto recordDetailDto = recordService.getRecordDetail(userId, recordId);
         return ResponseEntity.ok(recordDetailDto);
     }
 }

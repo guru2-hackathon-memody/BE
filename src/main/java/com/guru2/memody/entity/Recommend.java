@@ -1,12 +1,19 @@
 package com.guru2.memody.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
 @Table(name="recommend")
+@Getter @Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class Recommend {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -17,4 +24,15 @@ public class Recommend {
     private User user;
 
     private LocalDateTime createTime;
+
+    private Enum MomentType;
+    private Enum MoodType;
+
+    @ManyToMany
+    @JoinTable(
+            name = "recommend_music",
+            joinColumns = @JoinColumn(name = "recommend_id"),
+            inverseJoinColumns = @JoinColumn(name = "music_id")
+    )
+    private List<Music> recommendMusic;
 }

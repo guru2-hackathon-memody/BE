@@ -5,23 +5,20 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
 @Entity
-@Table(name = "artist")
+@Table(name = "record_image")
 @NoArgsConstructor
 @AllArgsConstructor
-@Getter
 @Setter
-public class Artist {
+@Getter
+public class RecordImage {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long artistId;
+    private Long recordImageId;
 
-    @Column(nullable = false)
-    private String artistName;
+    @ManyToOne
+    @JoinColumn(name = "record_id")
+    private Record record;
 
-    private String artistImageUrl;
-
-    @Column(nullable = false)
-    private Long itunesArtistId = 0L;
+    private String imageUrl;
 }

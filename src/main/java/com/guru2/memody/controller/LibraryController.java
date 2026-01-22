@@ -5,6 +5,7 @@ import com.guru2.memody.dto.MusicListResponseDto;
 import com.guru2.memody.dto.MyRecordResponseDto;
 import com.guru2.memody.dto.RecordDetailDto;
 import com.guru2.memody.repository.RecordRepository;
+import com.guru2.memody.service.ITunesService;
 import com.guru2.memody.service.MusicService;
 import com.guru2.memody.service.RecordService;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ import java.util.List;
 public class LibraryController {
     private final MusicService musicService;
     private final RecordService recordService;
+    private final ITunesService itunesService;
 
     @GetMapping("/like")
     public ResponseEntity<List<MusicListResponseDto>> getLikedMusicList(@AuthenticationPrincipal CustomUserDetails user) {

@@ -9,4 +9,6 @@ public interface MusicRepository extends CrudRepository<Music, Long> {
     Music findMusicByMusicId(Long musicId);
 
     Optional<Music> findMusicByAppleMusicUrl(String trackViewUrl);
+
+    Optional<Music> findMusicByItunesId(Long trackId);
 }

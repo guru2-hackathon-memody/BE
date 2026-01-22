@@ -23,6 +23,9 @@ public class Music {
     @Column(nullable = false)
     private String artist;
 
+    @Column(nullable = false, unique = true)
+    private Long itunesId;
+
     @Column(nullable = true, columnDefinition = "TEXT")
     private String spotifyUrl;
 
