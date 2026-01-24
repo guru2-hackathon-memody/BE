@@ -28,11 +28,11 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .anonymous(anonymous -> anonymous.disable())
+                //.anonymous(anonymous -> anonymous.disable())
                 .securityContext(security -> security.requireExplicitSave(false))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/auth/**", "/h2-console/**", "/location/search").permitAll()
+                        .requestMatchers("/auth/**", "/h2-console/**", "/uploads/images/**", "/location/search").permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form.disable())

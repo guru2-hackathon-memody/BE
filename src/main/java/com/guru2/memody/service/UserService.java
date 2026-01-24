@@ -65,6 +65,11 @@ public class UserService {
         return check;
     }
 
+    public Boolean checkName(String name) {
+        Boolean check = userRepository.findUserByName(name).isEmpty();
+        return check;
+    }
+
     public String login(LoginRequestDto loginRequestDto) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginRequestDto.getEmail(), loginRequestDto.getPassword())

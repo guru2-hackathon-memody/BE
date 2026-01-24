@@ -10,10 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
@@ -44,5 +41,12 @@ public class MapController {
         Long userId = user.getUserId();
         RecordDetailDto recordDetailDto = recordService.getRecordDetail(userId, recordId);
         return ResponseEntity.ok(recordDetailDto);
+    }
+
+    @DeleteMapping("/{recordId}")
+    public ResponseEntity deleteRecord(@AuthenticationPrincipal CustomUserDetails user, @PathVariable Long recordId){
+        Long userId = user.getUserId();
+        recordService.deleteRecord(userId, recordId);
+        return ResponseEntity.ok().build();
     }
 }

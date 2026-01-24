@@ -9,6 +9,7 @@ import java.util.List;
 @Getter
 @Setter
 public class RecordDetailDto {
+    private Long recordId;
     private String title;
     private String artist;
     private String content;
