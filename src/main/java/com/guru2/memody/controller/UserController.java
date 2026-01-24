@@ -30,9 +30,15 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/check")
+    @GetMapping("/checkemail")
     ResponseEntity<Boolean> check(@RequestParam String email){
         Boolean response = userService.checkEmail(email);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/checkname")
+    ResponseEntity<Boolean> checkName(@RequestParam String name){
+        Boolean response = userService.checkName(name);
         return ResponseEntity.ok(response);
     }
 

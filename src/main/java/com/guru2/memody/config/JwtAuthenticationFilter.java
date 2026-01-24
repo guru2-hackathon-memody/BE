@@ -29,7 +29,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // 1) 인증이 필요없는 엔드포인트는 필터 건너뛰기
         if (path.startsWith("/auth") ||
-                path.startsWith("/h2-console")) {
+                path.startsWith("/h2-console") || path.startsWith("/uploads/images")) {
 
             filterChain.doFilter(request, response);
             return;

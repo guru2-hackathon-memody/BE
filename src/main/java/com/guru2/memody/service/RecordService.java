@@ -1,6 +1,7 @@
 package com.guru2.memody.service;
 
 import com.guru2.memody.Exception.NotAllowedException;
+import com.guru2.memody.Exception.NotFoundException;
 import com.guru2.memody.Exception.RecordNotFoundException;
 import com.guru2.memody.Exception.UserNotFoundException;
 import com.guru2.memody.dto.*;
@@ -89,6 +90,7 @@ public class RecordService {
         }
         else recordDetailDto.setLiked(likeRepository.findByUserAndRecord(user, record).isPresent());
 
+        recordDetailDto.setRecordId(record.getRecordId());
         recordDetailDto.setTitle(record.getRecordMusic().getTitle());
         recordDetailDto.setArtist(record.getRecordMusic().getArtist());
         recordDetailDto.setContent(record.getText());
@@ -231,5 +233,16 @@ public class RecordService {
             }
         }
         return pinnedListDtos;
+    }
+
+    @Transactional
+    public void deleteRecord(Long userId, Long recordId){
+        User user = userRepository.findUserByUserId(userId).orElseThrow(UserNotFoundException::new);
+        Record record = recordRepository.findById(recordId).orElseThrow(
+                ()-> new NotFoundException("Record Not Found"));
+        if(record.getUser() == user){
+            recordImageRepository.deleteByRecord(record);
+            recordRepository.delete(record);
+        }
     }
 }
