@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.RestController;
 @Controller
 public class HomeController {
     private final RecommendService recommendService;
+
+    // 홈 화면
     @GetMapping
     public ResponseEntity<HomeDto> home(@AuthenticationPrincipal CustomUserDetails user) {
         Long userId = user.getUserId();

@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/// 기록(record) 엔티티 관련 로직
+/// 지도, 커뮤니티, 라이브러리 등 사용자가 기록한 내용과 관련한 데이터를 처리합니다.
 @RequiredArgsConstructor
 @Service
 public class RecordService {
@@ -29,8 +31,10 @@ public class RecordService {
     private final LikeRepository likeRepository;
     private final RecordImageRepository recordImageRepository;
 
+    //LocalDateTime -> String용 formatter
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
+    // 지도: 내 핀 보기
     public List<RecordPinResponseDto> getMeInMap(Long userId) {
         User user = userRepository.findUserByUserId(userId).orElseThrow(
                 UserNotFoundException::new
@@ -50,6 +54,7 @@ public class RecordService {
         return recordPinResponseDtos;
     }
 
+    // 지도: 다른 유저 핀 보기
     public List<RecordPinResponseDto> getOtherInMap(Long userId) {
         User user = userRepository.findUserByUserId(userId).orElseThrow(
                 UserNotFoundException::new
@@ -69,6 +74,7 @@ public class RecordService {
         return recordPinResponseDtos;
     }
 
+    // 지도: 기록 상세 보기
     public RecordDetailDto getRecordDetail(Long userId, Long recordId) {
         Record record = recordRepository.findById(recordId).orElseThrow(
                 RecordNotFoundException::new
@@ -86,9 +92,10 @@ public class RecordService {
         }
         recordDetailDto.setImageUrls(strings);
 
+        // like (좋아요 여부) 설정
         if(user == record.getUser()) {
             recordDetailDto.setLiked(null);
-            recordDetailDto.setLikeCount(null);
+            recordDetailDto.setLikeCount(record.getLikeCount());
         }
         else recordDetailDto.setLiked(likeRepository.findByUserAndRecord(user, record).isPresent());
 
@@ -104,6 +111,7 @@ public class RecordService {
         return recordDetailDto;
     }
 
+    // 커뮤니티 보기
     public List<CommunityGroupDto> getCommunity(Long userId) {
         List<Record> records = recordRepository.findAllByOrderByRecordTimeDesc();
         User user = userRepository.findUserByUserId(userId).orElseThrow(
@@ -135,11 +143,13 @@ public class RecordService {
             allDtos.add(dto);
         }
 
+        // 유저 별로 그룹핑
         Map<Long, List<CommunityResponseDto>> groupedMap = allDtos.stream()
                 .collect(Collectors.groupingBy(CommunityResponseDto::getUserId));
 
         List<CommunityGroupDto> result = new ArrayList<>();
 
+        // 유저 별 데이터 가공 (최신순 정렬, 최대 5개)
         for (Long id : groupedMap.keySet()) {
             List<CommunityResponseDto> userRecords = groupedMap.get(id);
 
@@ -167,6 +177,7 @@ public class RecordService {
         return result;
     }
 
+    // 기록 좋아요
     @Transactional
     public LikeResponseDto likeRecord(Long userId, Long recordId) {
         User user = userRepository.findUserByUserId(userId).orElseThrow(
@@ -214,6 +225,7 @@ public class RecordService {
         return likeResponseDto;
     }
 
+    // 라이브러리: 핀한 음악 보기
     public List<MyRecordResponseDto> getMyRecordList(Long userId) {
         User user = userRepository.findUserByUserId(userId).orElseThrow(
                 UserNotFoundException::new
@@ -222,6 +234,7 @@ public class RecordService {
         List<MyRecordResponseDto> myRecordResponseDtos = new ArrayList<>();
         for (Record record : records) {
             MyRecordResponseDto myRecordResponseDto = new MyRecordResponseDto();
+            myRecordResponseDto.setRecordId(record.getRecordId());
             myRecordResponseDto.setTitle(record.getRecordMusic().getTitle());
             myRecordResponseDto.setArtist(record.getRecordMusic().getArtist());
             myRecordResponseDto.setContent(record.getText());
@@ -236,6 +249,7 @@ public class RecordService {
         return myRecordResponseDtos;
     }
 
+    // 홈: 최근 저장한 곡 보기
     public List<PinnedListDto> getLatentPin(Long userId){
         User user = userRepository.findUserByUserId(userId)
                 .orElseThrow(UserNotFoundException::new);
@@ -275,6 +289,7 @@ public class RecordService {
         return pinnedListDtos;
     }
 
+    // 기록 삭제
     @Transactional
     public void deleteRecord(Long userId, Long recordId){
         User user = userRepository.findUserByUserId(userId).orElseThrow(UserNotFoundException::new);

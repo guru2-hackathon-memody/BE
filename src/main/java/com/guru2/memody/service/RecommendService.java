@@ -18,7 +18,6 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Limit;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -37,13 +36,13 @@ import java.util.concurrent.Executors;
 public class RecommendService {
     private final UserRepository userRepository;
     private final RecommendMusicRepository recommendRepository;
-    private final RestTemplate restTemplate = new RestTemplate();
     private final AlbumRepository albumRepository;
     private final RecommendAlbumRepository recommendAlbumRepository;
     private final RecommendArtistRepository recommendArtistRepository;
     private final ArtistRepository artistRepository;
     private final RecommendMusicRepository recommendMusicRepository;
 
+    // 제미나이 api 요청용 키
     @Value("${GEMINI_API_KEY}")
     private String geminiApiKey;
 
@@ -74,6 +73,7 @@ public class RecommendService {
         private String country;
     }
 
+    // 유저 정보 추출용 내부 메서드
     private List<String> userInfoToPrompt(User user){
         List<String> userInfo = new ArrayList<>();
         List<String> genreNames = genrePreferenceRepository.findAllByUser(user)
@@ -108,6 +108,7 @@ public class RecommendService {
         return userInfo;
     }
 
+    // 유저 정보를 기반으로 음악 추천 프롬프트 생성
     private String createPromptWithUserInfo(User user, String purpose){
         List<String> userInfo = userInfoToPrompt(user);
 
@@ -163,6 +164,7 @@ public class RecommendService {
         return  prompt;
     }
 
+    // 유저 정보를 기반으로 아티스트 추천 프롬프트 생성
     private String createArtistPromptWithUserInfo(User user){
         List<String> userInfo = userInfoToPrompt(user);
 
@@ -216,6 +218,7 @@ public class RecommendService {
         return  prompt;
     }
 
+    // 유저 정보와 온보딩을 기반으로 오늘의 추천곡 프롬프트 생성
     private String createPromptWithOnboarding(User user, RecommendRequestDto recommend) {
 
         List<String> userInfo = userInfoToPrompt(user);
@@ -282,6 +285,7 @@ public class RecommendService {
         return  prompt;
     }
 
+    // 제미나이 호출
     private String callGemini(String prompt){
         Client client = Client.builder().apiKey(geminiApiKey).build();
         GenerateContentResponse response =
@@ -294,6 +298,7 @@ public class RecommendService {
         return response.text();
     }
 
+    // 제미나이 응답 파싱
     private List<GeminiRecommendationDto> parseGeminiResponse(String geminiText) {
         try {
             String cleanedText = geminiText.replaceAll("```json", "").replaceAll("```", "").trim();
@@ -343,9 +348,7 @@ public class RecommendService {
         }
     }
 
-    /**
-     * 앨범 및 수록곡 검색 로직 (비동기 호출용)
-     */
+    // 앨범 및 수록곡 검색 로직 (비동기 호출용)
     private Album fetchAlbumLogic(String title, String artistName) {
         try {
             String albumResponse = itunesService.searchAlbumWithClearInfo(title, artistName);
@@ -390,10 +393,9 @@ public class RecommendService {
         }
     }
 
-    // =================================================================================
-    // [서비스 메서드] CompletableFuture 적용
-    // =================================================================================
+    /// 서비스 메서드
 
+    // 홈: 오늘의 추천곡
     @Transactional
     public List<MusicListResponseDto> getRecommendTrackByOnboarding(Long userId, RecommendRequestDto recommendRequestDto) throws JsonProcessingException {
         User user = userRepository.findUserByUserId(userId).orElseThrow(UserNotFoundException::new);
@@ -407,13 +409,12 @@ public class RecommendService {
         recommend.setMoodType(Mood.valueOf(recommendRequestDto.getMood()));
         recommend.setCreateTime(LocalDateTime.now());
 
-        // 1. Gemini 호출
-        // (주의: createPromptWithOnboarding 메서드는 기존 코드에 있는 내용을 사용해야 합니다)
+        // Gemini 호출
         String prompt = createPromptWithOnboarding(user, recommendRequestDto);
         String response = callGemini(prompt);
         List<GeminiRecommendationDto> recommendedItems = parseGeminiResponse(response);
 
-        // 2. 병렬 처리 (기존 for문 대체)
+        // 병렬 처리
         List<CompletableFuture<Music>> futures = recommendedItems.stream()
                 .map(item -> CompletableFuture.supplyAsync(() -> fetchMusicLogic(item.getTitle(), item.getArtist()), apiExecutor))
                 .toList();
@@ -431,6 +432,7 @@ public class RecommendService {
                 .toList();
     }
 
+    // 오늘의 추천곡 상세 보기용 메서드, 현재 사용X
     @Transactional
     public List<MusicListResponseDto> getRecommendTrackByUserInfo(Long userId){
         User user = userRepository.findUserByUserId(userId).orElseThrow(UserNotFoundException::new);
@@ -447,12 +449,12 @@ public class RecommendService {
         recommend.setUser(user);
         recommend.setCreateTime(LocalDateTime.now());
 
-        // 1. Gemini 호출
+        // Gemini 호출
         String prompt = createPromptWithUserInfo(user, "곡 제목");
         String response = callGemini(prompt);
         List<GeminiRecommendationDto> recommendedItems = parseGeminiResponse(response);
 
-        // 2. 병렬 처리
+        // 병렬 처리
         List<CompletableFuture<Music>> futures = recommendedItems.stream()
                 .map(item -> CompletableFuture.supplyAsync(() -> fetchMusicLogic(item.getTitle(), item.getArtist()), apiExecutor))
                 .toList();
@@ -470,6 +472,7 @@ public class RecommendService {
                 .toList();
     }
 
+    // 홈: 추천 앨범
     @Transactional
     public RecommendAlbum getRecommendAlbumByUserInfo(Long userId) {
         User user = userRepository.findUserByUserId(userId).orElseThrow(UserNotFoundException::new);
@@ -481,12 +484,12 @@ public class RecommendService {
             return recommendAlbum;
         }
 
-        // 1. Gemini 호출
+        // Gemini 호출
         String prompt = createPromptWithUserInfo(user, "앨범 명");
         String response = callGemini(prompt);
         List<GeminiRecommendationDto> recommendedItems = parseGeminiResponse(response);
 
-        // 2. 병렬 처리 (앨범 검색 + 수록곡 검색을 묶어서 병렬화)
+        // 병렬 처리 (앨범 검색 + 수록곡 검색을 묶어서 병렬화)
         List<CompletableFuture<Album>> futures = recommendedItems.stream()
                 .map(item -> CompletableFuture.supplyAsync(() -> fetchAlbumLogic(item.getTitle(), item.getArtist()), apiExecutor))
                 .toList();
@@ -503,6 +506,7 @@ public class RecommendService {
         return recommendAlbum;
     }
 
+    // 홈: 아티스트 추천곡
     @Transactional
     public RecommendArtist getRecommendArtistByUserInfo(Long userId) {
         User user = userRepository.findUserByUserId(userId).orElseThrow(UserNotFoundException::new);
@@ -519,14 +523,14 @@ public class RecommendService {
             return recommendArtist;
         }
 
-        // 1. Gemini 호출
+        // Gemini 호출
         String prompt = createArtistPromptWithUserInfo(user);
         String response = callGemini(prompt);
         List<GeminiRecommendationDto> recommendedItems = parseGeminiResponse(response);
 
         if (recommendedItems.isEmpty()) throw new RuntimeException("AI 추천 결과가 없습니다.");
 
-        // 2. 아티스트 정보 저장 (단건이므로 동기 처리)
+        // 아티스트 정보 저장 (단건이므로 동기 처리)
         String artistName = recommendedItems.get(0).getArtist();
         Artist artist = null;
         try {
@@ -545,7 +549,7 @@ public class RecommendService {
         }
         recommendArtist.setArtist(artist); // 아티스트 설정 추가
 
-        // 3. 곡 목록 병렬 처리
+        // 곡 목록 병렬 처리
         List<CompletableFuture<Music>> futures = recommendedItems.stream()
                 .map(item -> CompletableFuture.supplyAsync(() -> fetchMusicLogic(item.getTitle(), item.getArtist()), apiExecutor))
                 .toList();
@@ -562,6 +566,7 @@ public class RecommendService {
         return recommendArtist;
     }
 
+    // 홈: 전체 정보 로드
     @Transactional
     public HomeDto getHome(Long userId) {
         User user = userRepository.findUserByUserId(userId).orElseThrow(UserNotFoundException::new);

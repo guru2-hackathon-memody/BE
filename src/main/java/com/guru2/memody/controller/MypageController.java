@@ -21,6 +21,7 @@ public class MypageController {
 
     private final UserService userService;
 
+    // 마이페이지: 지역 정보 수정
     @PatchMapping("/region")
     public ResponseEntity<String> updateRegion(@AuthenticationPrincipal CustomUserDetails user,
                                                @RequestParam RegionUpdateDto region) {

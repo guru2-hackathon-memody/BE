@@ -19,6 +19,7 @@ public class RegionController {
 
     private final RegionService regionService;
 
+    // 지역명 검색
     @GetMapping("/search")
     public ResponseEntity<List<String>> searchRegion(@RequestParam String region) {
         ResponseEntity<List<String>> response = regionService.searchRegions(region);

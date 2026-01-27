@@ -1,9 +1,6 @@
 package com.guru2.memody.service;
 
-import com.guru2.memody.Exception.RegionWrongException;
-import com.guru2.memody.Exception.UserAlreadyExistsException;
-import com.guru2.memody.Exception.UserNameAlreadyExistsException;
-import com.guru2.memody.Exception.UserNotFoundException;
+import com.guru2.memody.Exception.*;
 import com.guru2.memody.config.JwtTokenProvider;
 import com.guru2.memody.dto.LoginRequestDto;
 import com.guru2.memody.dto.RegionUpdateDto;
@@ -38,6 +35,7 @@ public class UserService {
     private final GenreRepository genreRepository;
     private final GenrePreferenceRepository genrePreferenceRepository;
 
+    // 회원가입
     @Transactional
     public SignUpResponseDto signup(SignUpDto signUpDto) {
         if(userRepository.findUserByEmail(signUpDto.getEmail()).isPresent()){
@@ -47,6 +45,7 @@ public class UserService {
             throw new UserNameAlreadyExistsException();
         }
 
+        // 비밀번호 인코딩
         String encodedPassword = passwordEncoder.encode(signUpDto.getPassword());
 
         User user = new User();
@@ -61,17 +60,23 @@ public class UserService {
         return signUpResponseDto;
     }
 
+    // 이메일 중복 확인
     public Boolean checkEmail(String email) {
         Boolean check = userRepository.findUserByEmail(email).isEmpty();
         return check;
     }
 
+    // 닉네임 중복 확인
     public Boolean checkName(String name) {
         Boolean check = userRepository.findUserByName(name).isEmpty();
         return check;
     }
 
+    // 로그인
     public String login(LoginRequestDto loginRequestDto) {
+        User user = userRepository.findUserByEmail(loginRequestDto.getEmail()).orElseThrow(UserNotFoundException::new); // 이메일 없을 경우 404
+
+        // 403 오류
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginRequestDto.getEmail(), loginRequestDto.getPassword())
         );
@@ -82,6 +87,7 @@ public class UserService {
 
     }
 
+    // 온보딩: 지역 설정
     @Transactional
     public String updateRegion(Long userId, RegionUpdateDto region) {
         Region reg = regionRepository.findFirstByFullNameContaining(region.getRegion());
@@ -93,6 +99,8 @@ public class UserService {
         );
 
         user.setLocation(reg);
+
+        // 현재 위치로 설정 누를 경우 위도 경도 저장
         if(region.getLatitude() == null && region.getLongitude() == null){
 
         } else {
@@ -104,6 +112,7 @@ public class UserService {
 
     }
 
+    // 온보딩: 아티스트 선호
     @Transactional
     public String updateArtistPrefer(Long userId, List<String> artist) {
         List<Artist> atst = new ArrayList<>();
@@ -124,6 +133,7 @@ public class UserService {
         return "Patch Artist Successful: " + atst.toString();
     }
 
+    // 온보딩: 선호 장르
     @Transactional
     public String updateGenrePrefer(Long userId, List<String> genre) {
         List<Genre> gst = new ArrayList<>();

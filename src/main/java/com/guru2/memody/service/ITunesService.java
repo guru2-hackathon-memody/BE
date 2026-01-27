@@ -16,8 +16,6 @@ import org.springframework.web.util.UriUtils;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -25,12 +23,11 @@ public class ITunesService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    private static final String APPLE_SEARCH_URL = "https://itunes.apple.com/search";
-    private static final String APPLE_LOOKUP_URL = "https://itunes.apple.com/lookup";
+    // iTunes BASE URL
+    private static final String APPLE_SEARCH_URL = "https://itunes.apple.com/search"; // String 검색어로 검색할 때 사용
+    private static final String APPLE_LOOKUP_URL = "https://itunes.apple.com/lookup"; // iTunesId 값으로 정확한 값을 검색할 때 사용
 
-    private final UserRepository userRepository;
-    private final MusicLikeRepository musicLikeRepository;
-
+    // 검색어를 통한 음악 검색
     public String searchTrackWithItunes(String search) {
         String uri = UriComponentsBuilder.fromUriString(APPLE_SEARCH_URL)
                 .queryParam("term", search)
@@ -43,6 +40,7 @@ public class ITunesService {
         return restTemplate.getForObject(uri, String.class);
     }
 
+    // 검색어를 통한 가수 검색
     public String searchArtistWithItunes(String search) {
         String uri = UriComponentsBuilder.fromUriString(APPLE_SEARCH_URL)
                 .queryParam("term", search)
@@ -55,6 +53,7 @@ public class ITunesService {
         return restTemplate.getForObject(uri, String.class);
     }
 
+    // 아티스트 id를 통한 가수 검색
     public String lookupArtistImageWithItunes(Long id) {
         String uri = UriComponentsBuilder.fromUriString(APPLE_LOOKUP_URL)
                 .queryParam("id", id)
@@ -68,6 +67,7 @@ public class ITunesService {
     }
 
 
+    // iTunes -> spotify 외부 링크 매핑
     public String getSpotifyLinkFromItunes(String itunesUrl) throws JsonProcessingException {
         String encodedUrl = UriUtils.encode(itunesUrl, StandardCharsets.UTF_8);
 
@@ -85,6 +85,7 @@ public class ITunesService {
                 .asText();
     }
 
+    // 노래 제목 + 가수명으로 음악 검색
     public String searchTrackWithClearInfo(String title, String artist){
         String term = title + " " + artist;
 
@@ -102,6 +103,7 @@ public class ITunesService {
         return restTemplate.getForObject(uri, String.class);
     }
 
+    // 앨범명 + 가수명으로 음악 검색
     public String searchAlbumWithClearInfo(String title, String artist){
         String term = title + " " + artist;
 
@@ -119,21 +121,7 @@ public class ITunesService {
         return restTemplate.getForObject(uri, String.class);
     }
 
-    public String searchTrackWithAlbum(String term){
-        URI uri = UriComponentsBuilder
-                .fromUriString(APPLE_SEARCH_URL)
-                .queryParam("term", term)
-                .queryParam("media", "music")
-                .queryParam("entity", "song")
-                .queryParam("limit", 20)
-                .queryParam("country", "KR")
-                .encode(StandardCharsets.UTF_8)
-                .build()
-                .toUri();
-
-        return restTemplate.getForObject(uri, String.class);
-    }
-
+    // 앨범 id를 통한 수록곡 검색
     public String lookupTracksByAlbumId(Long id) {
         URI uri = UriComponentsBuilder
                 .fromUriString(APPLE_LOOKUP_URL)

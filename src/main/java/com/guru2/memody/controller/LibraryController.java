@@ -27,6 +27,7 @@ public class LibraryController {
     private final RecordService recordService;
     private final ITunesService itunesService;
 
+    // 라이브러리: 좋아요한 음악
     @GetMapping("/like")
     public ResponseEntity<List<MusicListResponseDto>> getLikedMusicList(@AuthenticationPrincipal CustomUserDetails user) {
         Long userId = user.getUserId();
@@ -34,6 +35,7 @@ public class LibraryController {
         return ResponseEntity.ok(response);
     }
 
+    // 라이브러리: 핀한 음악
     @GetMapping("/pin")
     public ResponseEntity<List<MyRecordResponseDto>> getMyRecordList(@AuthenticationPrincipal CustomUserDetails user) {
         Long userId = user.getUserId();
