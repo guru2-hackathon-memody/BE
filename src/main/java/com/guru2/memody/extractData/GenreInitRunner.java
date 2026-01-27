@@ -16,6 +16,7 @@ public class GenreInitRunner implements CommandLineRunner {
 
     private final GenreRepository genreRepository;
 
+    // 회원가입(온보딩)에서 사용하는 장르를 미리 적재
     @Override
     public void run(String... args) {
         if (genreRepository.count() > 0) return;

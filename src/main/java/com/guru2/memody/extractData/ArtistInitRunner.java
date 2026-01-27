@@ -16,6 +16,7 @@ import java.util.List;
 public class ArtistInitRunner implements CommandLineRunner {
     private final ArtistRepository artistRepository;
 
+    // 회원가입(온보딩)에서 사용하는 가수를 미리 적재
     @Override
     public void run(String... args) {
         if (artistRepository.count() > 0) return;

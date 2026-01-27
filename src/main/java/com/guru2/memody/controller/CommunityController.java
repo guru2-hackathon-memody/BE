@@ -19,6 +19,7 @@ import java.util.List;
 public class CommunityController {
     private final RecordService recordService;
 
+    // 커뮤니티 전체 보기
     @GetMapping
     public ResponseEntity<List<CommunityGroupDto>> getCommunity(@AuthenticationPrincipal CustomUserDetails user) {
         Long userId = user.getUserId();
@@ -26,6 +27,7 @@ public class CommunityController {
         return ResponseEntity.ok(response);
     }
 
+    // 커뮤니티 기록 좋아요
     @PatchMapping("/{recordId}/like")
     public ResponseEntity<LikeResponseDto> likeRecord(@AuthenticationPrincipal CustomUserDetails user, @PathVariable Long recordId) {
         Long userId = user.getUserId();

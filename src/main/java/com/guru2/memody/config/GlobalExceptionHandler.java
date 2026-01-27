@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    // User Already Exists
     @ExceptionHandler(UserAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleUserAlreadyExists(
             UserAlreadyExistsException e
@@ -23,6 +24,7 @@ public class GlobalExceptionHandler {
                 ));
     }
 
+    // User Name Alreay Exist
     @ExceptionHandler(UserNameAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleUserNameAlreadyExists(
             UserNameAlreadyExistsException e
@@ -35,6 +37,7 @@ public class GlobalExceptionHandler {
                 ));
     }
 
+    // Region Wrong Exception
     @ExceptionHandler(RegionWrongException.class)
     public ResponseEntity<ErrorResponse> handleRegionWrongException(
             RegionWrongException e
@@ -47,6 +50,7 @@ public class GlobalExceptionHandler {
                 ));
     }
 
+    // User Not Found
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleUserNotFoundException(
             UserNotFoundException e
@@ -59,6 +63,7 @@ public class GlobalExceptionHandler {
                 ));
     }
 
+    // Record Not Found
     @ExceptionHandler(RecordNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleRecordNotFoundException(
             RecordNotFoundException e
@@ -71,6 +76,7 @@ public class GlobalExceptionHandler {
                 ));
     }
 
+    // Custom Not Allowed Exception
     @ExceptionHandler(NotAllowedException.class)
     public ResponseEntity<ErrorResponse> handleNotAllowedException(
             NotAllowedException e
@@ -83,6 +89,7 @@ public class GlobalExceptionHandler {
                 ));
     }
 
+    // Custom Not Found Exception
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFoundException(
             NotFoundException e

@@ -46,12 +46,16 @@ public class MusicService {
 
     private final ITunesService itunesService;
 
-    private final RestTemplate restTemplate = new RestTemplate();
     private final AlbumRepository albumRepository;
     private final RecommendArtistRepository recommendArtistRepository;
 
+    // 기록: 업로드한 사장 저장 위치
+    private static final String UPLOAD_DIR = "uploads/images/";
+
+    //LocalDateTime -> String용 formatter
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
+    // 음악 검색
     @Transactional
     public List<MusicListResponseDto> searchTrack(String search) throws JsonProcessingException {
         String response = itunesService.searchTrackWithItunes(search);
@@ -89,6 +93,7 @@ public class MusicService {
         return trackList;
     }
 
+    // 음악 기록
     @Transactional
     public RecordPinResponseDto recordTrack(Long userId, MusicRecordDto musicRecordDto, List<MultipartFile> images) throws JsonProcessingException {
         User user = userRepository.findUserByUserId(userId).orElseThrow(
@@ -134,6 +139,7 @@ public class MusicService {
     }
 
 
+    // 음악 좋아요
     public LikeResponseDto likeTrack(Long userId, Long musicId) {
         User user = userRepository.findUserByUserId(userId).orElseThrow(
                 UserNotFoundException::new
@@ -163,35 +169,8 @@ public class MusicService {
         return likeResponseDto;
     }
 
-    private static final String UPLOAD_DIR = "uploads/images/";
 
-    public String saveImage(MultipartFile file) {
-        if (file.isEmpty()) {
-            throw new NotFoundException("IMAGE_FILE_EMPTY");
-        }
-
-        try {
-            Files.createDirectories(Paths.get(UPLOAD_DIR));
-
-            String ext = getExtension(file.getOriginalFilename());
-            String filename = UUID.randomUUID() + ext;
-
-            Path path = Paths.get(UPLOAD_DIR, filename);
-            Files.write(path, file.getBytes());
-
-            return "/uploads/images/" + filename;
-        } catch (IOException e) {
-            throw new RuntimeException("이미지 저장 실패", e);
-        }
-    }
-
-    private String getExtension(String filename) {
-        if (filename == null || !filename.contains(".")) {
-            return "";
-        }
-        return filename.substring(filename.lastIndexOf("."));
-    }
-
+    // 가수 검색
     public List<ArtistResponseDto> getArtistList(String search) throws JsonProcessingException {
         String response = itunesService.searchArtistWithItunes(search);
         ObjectMapper mapper = new ObjectMapper();
@@ -231,6 +210,7 @@ public class MusicService {
         return artistResponseDtos;
     }
 
+    // 음악 상세 정보 보기
     public MusicDetailDto getMusicDetail(Long userId, Long musicId) {
         Music music = musicRepository.findById(musicId).orElseThrow(
                 () -> new NotFoundException("Music Not Found")
@@ -261,7 +241,7 @@ public class MusicService {
         return musicDetailDto;
     }
 
-
+    // 좋아요한 음악 보기
     public List<MusicListResponseDto> getLikedMusicList(Long userId) {
         User user = userRepository.findUserByUserId(userId).orElseThrow(
                 UserNotFoundException::new
@@ -276,6 +256,7 @@ public class MusicService {
         return musicListResponseDtos;
     }
 
+    // 앨범 상세 정보 보기
     public AlbumDetailDto getAlbumDetail(Long userId, Long albumId) {
         Album album = albumRepository.findById(albumId).orElseThrow(
                 () -> new NotFoundException("Album Not Found")
@@ -293,6 +274,7 @@ public class MusicService {
         return albumDetailDto;
     }
 
+    // 아티스트 추천 곡 보기
     public ArtistRecommendDto getArtistRecommendDetail(Long userId) {
         User user = userRepository.findUserByUserId(userId).orElseThrow(
                 UserNotFoundException::new
@@ -310,6 +292,34 @@ public class MusicService {
         }
         artistRecommendDto.setMusicList(musicListResponseDtos);
         return artistRecommendDto;
+    }
+    // 이미지 저장용 내부 메서드
+    public String saveImage(MultipartFile file) {
+        if (file.isEmpty()) {
+            throw new NotFoundException("IMAGE_FILE_EMPTY");
+        }
+
+        try {
+            Files.createDirectories(Paths.get(UPLOAD_DIR));
+
+            String ext = getExtension(file.getOriginalFilename());
+            String filename = UUID.randomUUID() + ext;
+
+            Path path = Paths.get(UPLOAD_DIR, filename);
+            Files.write(path, file.getBytes());
+
+            return "/uploads/images/" + filename;
+        } catch (IOException e) {
+            throw new RuntimeException("이미지 저장 실패", e);
+        }
+    }
+
+    // 확장자 추출용 내부 메서드
+    private String getExtension(String filename) {
+        if (filename == null || !filename.contains(".")) {
+            return "";
+        }
+        return filename.substring(filename.lastIndexOf("."));
     }
 
 

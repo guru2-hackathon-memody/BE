@@ -23,32 +23,36 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
-    private final UserRepository userRepository;
 
+    // 회원가입
     @PostMapping("/signup")
     ResponseEntity<SignUpResponseDto> signup(@RequestBody SignUpDto signUpDto){
         SignUpResponseDto response = userService.signup(signUpDto);
         return ResponseEntity.ok(response);
     }
 
+    // 이메일 중복 확인
     @GetMapping("/checkemail")
     ResponseEntity<Boolean> check(@RequestParam String email){
         Boolean response = userService.checkEmail(email);
         return ResponseEntity.ok(response);
     }
 
+    // 닉네임 중복 확인
     @GetMapping("/checkname")
     ResponseEntity<Boolean> checkName(@RequestParam String name){
         Boolean response = userService.checkName(name);
         return ResponseEntity.ok(response);
     }
 
+    // 로그인
     @PostMapping("/login")
     public ResponseEntity<String> login(@RequestBody LoginRequestDto loginRequestDto) {
         String token = userService.login(loginRequestDto);
         return ResponseEntity.ok(token);
     }
 
+    // 온보딩: 지역
     @PatchMapping("/region")
     public ResponseEntity<String> updateRegion(@RequestParam Long userId,
                                                @RequestBody RegionUpdateDto region) {
@@ -56,6 +60,7 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    // 온보딩: 가수
     @PatchMapping("/artist")
     public ResponseEntity<String> updateArtistPrefer (@RequestParam Long userId,
                                                       @RequestParam List<String> artist) {
@@ -63,6 +68,7 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    // 온보딩: 장르
     @PatchMapping("/genre")
     public ResponseEntity<String> updateGenrePrefer (@RequestParam Long userId,
                                                      @RequestParam List<String> genre) {

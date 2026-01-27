@@ -5,6 +5,7 @@ import lombok.Setter;
 
 @Getter @Setter
 public class MyRecordResponseDto {
+    private Long recordId;
     private String title;
     private String artist;
     private String content;

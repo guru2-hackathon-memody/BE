@@ -21,6 +21,7 @@ public class VWorldClient {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
+    // 전국 지역 코드를 가지고 VWorld API 호출
     public List<VWorldFeatureResponse.Feature> getFNByPrefix(String codePrefix){
         String uri = UriComponentsBuilder.fromHttpUrl(BASE_URL)
                 .queryParam("service", "data")
@@ -45,6 +46,7 @@ public class VWorldClient {
                 .getFeatureCollection().getFeatures();
     }
 
+    // 위도, 경도 정보를 가지고 VWorld API 호출
     public List<VWorldFeatureResponse.Feature> getFNByGpsPoint(Double lon, Double lat) { // 순서: 경도, 위도
 
         String geomFilter = "POINT(" + lon + " " + lat + ")";
@@ -93,9 +95,7 @@ public class VWorldClient {
         }
     }
 
-
-
-
+    // 전국 지역 코드를 가지고 DB에 모든 지역명을 저장
     public List<RegionFullName> getRegions() {
         List<String> prefixes = List.of(
                 "11", // 서울
@@ -142,6 +142,7 @@ public class VWorldClient {
         return result;
     }
 
+    // 위도, 경도를 가지고 지역 정보(코드, 위도, 경도, 지역명)를 얻는 메서드
     public RegionFullName setRecordRegion(Double lon, Double lat){
         RegionFullName regionFullName = new RegionFullName();
 
@@ -153,7 +154,6 @@ public class VWorldClient {
             regionFullName.setName("위치 정보 없음");
 
             return regionFullName;
-//            throw new RegionWrongException("Cannt found region from user GPS point");
         }
 
         var p = features.get(0).getProperties();
@@ -164,6 +164,7 @@ public class VWorldClient {
         return regionFullName;
     }
 
+    // 위도, 경도를 가지고 지역명(서울시 노원구 공릉동) String 정보를 얻는 메서드
     public String getRegionName(Double lon, Double lat){
                 List<VWorldFeatureResponse.Feature> features = getFNByGpsPoint(lon, lat);
 

@@ -22,6 +22,7 @@ import java.util.List;
 public class MapController {
     private final RecordService recordService;
 
+    // 지도: 내 핀 
     @GetMapping("/me")
     public ResponseEntity<List<RecordPinResponseDto>> getMeInMap(@AuthenticationPrincipal CustomUserDetails user) {
         Long userId = user.getUserId();
@@ -29,6 +30,7 @@ public class MapController {
         return ResponseEntity.ok(response);
     }
 
+    // 지도: 다른 유저 핀
     @GetMapping("/other")
     public ResponseEntity<List<RecordPinResponseDto>> getOtherInMap(@AuthenticationPrincipal CustomUserDetails user) {
         Long userId = user.getUserId();
@@ -36,6 +38,7 @@ public class MapController {
         return ResponseEntity.ok(response);
     }
 
+    // 지도: 기록 상세보기
     @GetMapping("/{recordId}")
     public ResponseEntity<RecordDetailDto> getRecordDetail(@AuthenticationPrincipal CustomUserDetails user, @PathVariable Long recordId) {
         Long userId = user.getUserId();
@@ -43,6 +46,7 @@ public class MapController {
         return ResponseEntity.ok(recordDetailDto);
     }
 
+    // 지도: 기록 삭제
     @DeleteMapping("/{recordId}")
     public ResponseEntity deleteRecord(@AuthenticationPrincipal CustomUserDetails user, @PathVariable Long recordId){
         Long userId = user.getUserId();

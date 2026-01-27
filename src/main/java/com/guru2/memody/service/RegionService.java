@@ -40,6 +40,7 @@ public class RegionService {
         List<Region> regions = regionRepository.findAllByFullNameContaining(region);
         List<String> regionNames = new ArrayList<>();
 
+        // 검색어가 없는 경우
         if (regions.isEmpty()) {
             return new ResponseEntity<>(regionNames, HttpStatus.OK);
         }
@@ -50,6 +51,7 @@ public class RegionService {
         return new ResponseEntity<>(regionNames, HttpStatus.OK);
     }
 
+    // 위경도를 넣으면 지역명을 반환하는 함수, 현재 사용 X
     public ResponseEntity<String> getRegion(@RequestParam Double lat, @RequestParam Double lon) {
         String response = vWorldClient.getRegionName(lat, lon);
         return new ResponseEntity<>(response, HttpStatus.OK);
